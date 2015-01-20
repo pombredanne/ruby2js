@@ -3,6 +3,8 @@ Ruby2js
 
 Minimal yet extensible Ruby to JavaScript conversion.  
 
+[![Build Status](https://travis-ci.org/rubys/ruby2js.svg)](https://travis-ci.org/rubys/ruby2js) 
+
 Description
 ---
 
@@ -116,7 +118,7 @@ includes three such integrations:
 *  [Sinatra](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/sinatra.rb)
 *  [Rails](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/rails.rb)
 
-As you might expect, CGI is a bit sluggish.  By constrast, Sinatra and Rails
+As you might expect, CGI is a bit sluggish.  By contrast, Sinatra and Rails
 are quite speedy as the bulk of the time is spend on the initial load of the
 required libraries.
 
@@ -128,10 +130,15 @@ filters are selected, they will all be applied in parallel in one pass through
 the script.
 
 * [strict](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/strict.rb)
-  adds `'use strict';` to the output
+  adds `'use strict';` to the output.
 
 * [return](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/return.rb)
-  adds `return` to the last expression in functions
+  adds `return` to the last expression in functions.
+
+* [camelCase](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/camelCase.rb)
+  converts `underscore_case` to `camelCase`.  See
+  [camelCase_spec](https://github.com/rubys/ruby2js/blob/master/spec/camelCase_spec.rb)
+  for examples.
 
 * [functions](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/functions.rb)
 
@@ -154,6 +161,7 @@ the script.
     * `.last(n)` becomes `.slice(*.length-1, *.length)`
     * `.max` becomes `Math.max.apply(Math)`
     * `.min` becomes `Math.min.apply(Math)`
+    * `.nil?` becomes `== null`
     * `.ord` becomes `charCodeAt(0)`
     * `puts` becomes `console.log`
     * `.replace` becomes `.length = 0; ...push.apply(*)`
@@ -176,6 +184,9 @@ the script.
     * for the following methods, if the block consists entirely of a simple
       expression (or ends with one), a `return` is added prior to the
       expression: `sub`, `gsub`, `any?`, `all?`, `map`.
+    * New classes subclassed off of `Exception` will become subclassed off
+      of `Error` instead; and default constructors will be provided
+    * `loop do...end` will be replaced with `while (true) {...}`
 
 * [underscore](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/underscore.rb)
 
@@ -220,7 +231,7 @@ the script.
     * maps Ruby unary operator `~` to jQuery `$` function
     * maps Ruby attribute syntax to jquery attribute syntax
     * maps `$$` to jQuery `$` function
-    * defaults the fourth parameter of $$.post to :jquery, allowing Ruby block
+    * defaults the fourth parameter of $$.post to `"json"`, allowing Ruby block
       syntax to be used for the success function.
 
 * [angularrb](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/angularrb.rb)
@@ -230,7 +241,7 @@ the script.
       angular module functions.
     * maps `use` statements to formal arguments or array values (as
       appropriate) depending on the module function.
-    * maps `watch` statments to calls to `$scope.$watch`.
+    * maps `watch` statements to calls to `$scope.$watch`.
     * tracks globals variable and constant references and adds additional
       implicit `use` statements
     * maps constant assignments in an angular module to a filter
@@ -255,6 +266,27 @@ the script.
     * maps `$resource.new` statements on `$resource` function calls.
     * adds implicit module `use` of `ngResource` when `$resource.new` calls
       are encountered
+
+* [minitest-jasmine](https://github.com/rubys/ruby2js/blob/master/lib/ruby2js/filter/minitest-jasmine.rb)
+    * maps subclasses of `Minitest::Test` to `describe` calls
+    * maps `test_` methods inside subclasses of `Minitest::Test` to `it` calls
+    * maps `setup`, `teardown`, `before`, and `after` calls to `beforeEach`
+      and `afterEach` calls
+    * maps `assert` and `refute` calls to `expect`...`toBeTruthy()` and
+      `toBeFalsy` calls
+    * maps `assert_equal`, `refute_equal`, `.must_equal` and `.cant_equal`
+      calls to `expect`...`toBe()` calls
+    * maps `assert_in_delta`, `refute_in_delta`, `.must_be_within_delta`,
+      `.must_be_close_to`, `.cant_be_within_delta`, and `.cant_be_close_to`
+      calls to `expect`...`toBeCloseTo()` calls
+    * maps `assert_includes`, `refute_includes`, `.must_include`, and
+      `.cant_include` calls to `expect`...`toContain()` calls
+    * maps `assert_match`, `refute_match`, `.must_match`, and `.cant_match`
+      calls to `expect`...`toMatch()` calls
+    * maps `assert_nil`, `refute_nil`, `.must_be_nil`, and `.cant_be_nill` calls
+      to `expect`...`toBeNull()` calls
+    * maps `assert_operator`, `refute_operator`, `.must_be`, and `.cant_be`
+       calls to `expect`...`toBeGreaterThan()` or `toBeLessThan` calls
 
 [Wunderbar](https://github.com/rubys/wunderbar) includes additional demos:
 

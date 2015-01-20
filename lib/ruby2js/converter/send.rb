@@ -42,10 +42,14 @@ module Ruby2JS
         target = args.first 
       end
 
+      # resolve anonymous receivers against rbstack
+      receiver ||= @rbstack.map {|rb| rb[method]}.compact.last
+
       if receiver
         group_receiver = receiver.type == :send &&
           op_index < operator_index( receiver.children[1] ) if receiver
         group_receiver ||= [:begin, :dstr, :dsym].include? receiver.type
+        group_receiver = false if receiver.children[1] == :[]
       end
 
       if target
@@ -75,7 +79,7 @@ module Ruby2JS
       elsif method == :<< and args.length == 1 and @state == :statement
         "#{ parse receiver }.push(#{ parse args.first })"
 
-      elsif OPERATORS.flatten.include? method
+      elsif OPERATORS.flatten.include?(method) and not LOGICAL.include?(method)
         "#{ group_receiver ? group(receiver) : parse(receiver) } #{ method } #{ group_target ? group(target) : parse(target) }"  
 
       elsif method =~ /=$/

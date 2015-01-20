@@ -4,7 +4,7 @@ module Ruby2JS
   class Converter
     LOGICAL   = :and, :not, :or
     OPERATORS = [:[], :[]=], [:not, :!], [:*, :/, :%], [:+, :-], [:>>, :<<], 
-      [:<=, :<, :>, :>=], [:==, :!=, :===, :"!=="], [:and, :or]
+      [:&], [:^, :|], [:<=, :<, :>, :>=], [:==, :!=, :===, :"!=="], [:and, :or]
     
     INVERT_OP = {
       :<  => :>=,
@@ -24,6 +24,7 @@ module Ruby2JS
       @nl = ''
       @ws = ' '
       @varstack = []
+      @rbstack = []
       @width = 80
       @next_token = :return
 
@@ -154,6 +155,7 @@ require 'ruby2js/converter/masgn'
 require 'ruby2js/converter/module'
 require 'ruby2js/converter/next'
 require 'ruby2js/converter/nil'
+require 'ruby2js/converter/nthref'
 require 'ruby2js/converter/opasgn'
 require 'ruby2js/converter/prototype'
 require 'ruby2js/converter/regexp'

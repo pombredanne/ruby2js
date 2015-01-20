@@ -142,6 +142,10 @@ describe Ruby2JS::Filter::Functions do
       to_js( 'a.empty?' ).must_equal 'a.length == 0'
     end
 
+    it "should handle nil?" do
+      to_js( 'a.nil?' ).must_equal 'a == null'
+    end
+
     it "should handle clear" do
       to_js( 'a.clear()' ).must_equal 'a.length = 0'
     end
@@ -238,6 +242,20 @@ describe Ruby2JS::Filter::Functions do
     it 'should handle binary operators' do
       to_js( 'a.sort(&:<)' ).
         must_equal 'a.sort(function(a, b) {return a < b})'
+    end
+
+    it 'should handles loops' do
+      to_js( 'loop {sleep 1; break}').
+        must_equal 'while (true) {sleep(1); break}'
+    end
+  end
+
+  describe 'subclassing Exception' do
+    it 'should create an Exception contructor' do
+      to_js( 'class E < Exception; end' ).
+        must_equal 'function E(message) {this.message = message; ' +
+          'this.name = "E"; this.stack = Error(message).stack()}; ' +
+          'E.prototype = Object.create(Error); E.prototype.constructor = E'
     end
   end
 

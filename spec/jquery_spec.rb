@@ -28,6 +28,12 @@ describe Ruby2JS::Filter::JQuery do
       to_js( '~this.show.fadeOut' ).must_equal '$(this).show().fadeOut()'
     end
 
+    it "should not chain DOM elements" do
+      to_js( '~this[0].selectionStart' ).must_equal '$(this)[0].selectionStart'
+      to_js( '~this[0].selectionStart = start' ).
+        must_equal '$(this)[0].selectionStart = start'
+    end
+
     it "should handle consecutive tildes" do
       to_js( '~~value' ).must_equal '~~value'
       to_js( '~~~value' ).must_equal '~value'

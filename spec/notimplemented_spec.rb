@@ -23,10 +23,6 @@ describe 'not implemented' do
     todo( '::Foo' )
   end
 
-  it "alias" do
-    todo( 'alias foo bar' )
-  end
-
   it "shadow arguments" do
     todo(' proc {|;a|} ')
   end
@@ -39,8 +35,13 @@ describe 'not implemented' do
     todo( 'yield' )
   end
 
-  it "catching specific exceptions" do
+  it "catching exceptions without a variable" do
     todo("begin; rescue Exception; end")
+  end
+
+  it "catching exceptions with different variables" do
+    todo("begin; a; rescue StandardException => se; b; " +
+      "rescue Exception => e; c; end")
   end
 
   it "else clauses in begin...end" do
@@ -66,6 +67,13 @@ describe 'not implemented' do
   it "methods definitions with invalid names" do
     todo("def bang?; end")
     todo("def bang!; end")
+  end
+
+  it "regular expression back-references" do
+    todo("$&")
+    todo("$`")
+    todo("$'")
+    todo("$+")
   end
 
   unless RUBY_VERSION =~ /^1/

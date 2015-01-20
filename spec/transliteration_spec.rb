@@ -45,6 +45,10 @@ describe Ruby2JS do
     it "should parse global variables" do
       to_js( "$a = 1" ).must_equal 'var $a = 1'
     end
+
+    it "should parse regular expression capture groups" do
+      to_js( "$1 == 1" ).must_equal '$1 == 1'
+    end
   end
   
   describe 'assign' do
@@ -387,6 +391,16 @@ describe Ruby2JS do
         must_equal 'var a = 0; for (var i = 1; i < 4; i++) {a += i}'
     end
 
+    it "should handle a stepped range with an inclusive range" do
+      to_js( 'a = 0; (1..3).step(2) {|i| a += i}' ).
+        must_equal 'var a = 0; for (var i = 1; i <= 3; i += 2) {a += i}'
+    end
+
+    it "should handle a stepped range with an exclusive range" do
+      to_js( 'a = 0; (1...4).step(2) {|i| a += i}' ).
+        must_equal 'var a = 0; for (var i = 1; i < 4; i += 2) {a += i}'
+    end
+
     it "should handle break" do
       to_js( 'while true; break; end' ).must_equal 'while (true) {break}'
     end
@@ -589,6 +603,12 @@ describe Ruby2JS do
         must_equal 'function Person() {}; Person.search = function(name) {}'
     end
 
+    it "should parse class with alias" do
+      to_js('class Person; def f(name); end; alias :g :f; end').
+        must_equal 'function Person() {}; Person.prototype.f = ' +
+          'function(name) {}; Person.prototype.g = Person.prototype.f'
+    end
+
     it "should parse method def" do
       to_js('def method; end').must_equal 'function method() {}'
     end
@@ -607,14 +627,25 @@ describe Ruby2JS do
       to_js('def method; return self.foo; end').
         must_equal 'function method() {return this.foo}'
     end
-    
+
+    it "should prefix intra-method calls with 'this.'" do
+      to_js('class C; def m1; end; def m2; m1; end; end').
+        must_equal 'function C() {}; C.prototype = ' +
+          '{get m1() {}, get m2() {return this.m1}}'
+    end
+
+    it "should prefix class constants referenced in methods by class name" do
+      to_js('class C; X = 1; def m; X; end; end').
+        must_equal 'function C() {}; C.X = 1; C.prototype = {get m() {C.X}}'
+    end
+
     it "should insert var self = this when needed" do
-      to_js('class C; def m; list.each do; @ivar; @ivar; end; end; end').
-        must_equal 'function C() {}; C.prototype = {get m() {var self = this; list.each(function() {self._ivar; self._ivar})}}'
+      to_js('class C; def m; list.each do; @ivar; end; end; end').
+        must_equal 'function C() {}; C.prototype = {get m() {var self = this; return list.each(function() {self._ivar})}}'
       to_js('class C; def m(); list.each do; @ivar; @ivar; end; end; end').
         must_equal 'function C() {}; C.prototype.m = function() {var self = this; list.each(function() {self._ivar; self._ivar})}'
-      to_js('class C < S; def m; list.each do; @ivar; @ivar; end; end; end').
-        must_equal 'function C() {S.call(this)}; C.prototype = Object.create(S); C.prototype.constructor = C; Object.defineProperty(C.prototype, "m", {enumerable: true, configurable: true, get: function() {var self = this; list.each(function() {self._ivar; self._ivar})}})'
+      to_js('class C < S; def m; list.each do; @ivar; end; end; end').
+        must_equal 'function C() {S.call(this)}; C.prototype = Object.create(S); C.prototype.constructor = C; Object.defineProperty(C.prototype, "m", {enumerable: true, configurable: true, get: function() {var self = this; return list.each(function() {self._ivar})}})'
       to_js('class C < S; def m(); list.each do; @ivar; @ivar; end; end; end').
         must_equal 'function C() {S.call(this)}; C.prototype = Object.create(S); C.prototype.constructor = C; C.prototype.m = function() {var self = this; list.each(function() {self._ivar; self._ivar})}'
     end
@@ -775,19 +806,25 @@ describe Ruby2JS do
         must_equal 'throw new Exception("heck")'
     end
 
-    it "should handle catching an exception" do
+    it "should handle catching any exception" do
       to_js( 'begin a; rescue => e; b; end' ).
-        must_equal 'try {a} catch (e) {b}'
+        must_equal 'try {var a} catch (e) {var b}'
+    end
+
+    it "should handle catching a specific exception" do
+      to_js( 'begin a; rescue StandardError => e; b; end' ).
+        must_equal 'try {var a} catch (e) {' +
+          'if (e instanceof StandardError) {var b} else {throw e}}'
     end
 
     it "should handle an ensure clause" do
       to_js( 'begin a; ensure b; end' ).
-        must_equal 'try {a} finally {b}'
+        must_equal 'try {var a} finally {var b}'
     end
 
     it "should handle catching an exception and an ensure clause" do
       to_js( 'begin a; rescue => e; b; ensure; c; end' ).
-        must_equal 'try {a} catch (e) {b} finally {c}'
+        must_equal 'try {var a} catch (e) {var b} finally {var c}'
     end
 
     it "should gracefully neither a rescue nor an ensure being present" do

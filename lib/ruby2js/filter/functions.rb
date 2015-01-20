@@ -87,6 +87,9 @@ module Ruby2JS
         elsif method == :empty? and args.length == 0
           process s(:send, s(:attr, target, :length), :==, s(:int, 0))
 
+        elsif method == :nil? and args.length == 0
+          process s(:send, target, :==, s(:nil))
+
         elsif [:start_with?, :end_with?].include? method and args.length == 1
           if args.first.type == :str
             length = s(:int, args.first.children.first.length)
@@ -251,6 +254,34 @@ module Ruby2JS
             s(:block, s(:send, target, method, *call.children[2..-1]),
             *node.children[1..-1]))))
 
+        elsif node.children[0..1] == [s(:send, nil, :loop), s(:args)]
+          # input: loop {statements}
+          # output: while(true) {statements}
+          s(:while, s(:true), node.children[2])
+
+        else
+          super
+        end
+      end
+
+      def on_class(node)
+        name, inheritance, *body = node.children
+        body.compact!
+
+        if inheritance == s(:const, nil, :Exception)
+          unless 
+            body.any? {|statement| statement.type == :def and
+            statement.children.first == :initialize}
+          then
+            body.unshift s(:def, :initialize, s(:args, s(:arg, :message)),
+              s(:begin, s(:send, s(:self), :message=, s(:lvar, :message)),
+              s(:send, s(:self), :name=, s(:sym, name.children[1])),
+              s(:send, s(:self), :stack=, s(:send, s(:send, nil, :Error,
+              s(:lvar, :message)), :stack))))
+          end
+
+          body = [s(:begin, *body)] if body.length > 1
+          s(:class, name, s(:const, nil, :Error), *body)
         else
           super
         end
